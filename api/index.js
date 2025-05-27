@@ -38,16 +38,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Register API routes
-(async () => {
-  try {
-    await registerRoutes(app);
-  } catch (error) {
-    console.error("Failed to register routes:", error);
-    process.exit(1);
-  }
-})();
-
 // Error handling middleware
 app.use((err, _req, res, _next) => {
   const status = err.status || err.statusCode || 500;
@@ -57,7 +47,30 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ error: message });
 });
 
+// Initialize routes
+let routesInitialized = false;
+let routesPromise = null;
+
+async function ensureRoutesInitialized() {
+  if (!routesInitialized) {
+    if (!routesPromise) {
+      routesPromise = registerRoutes(app).catch(error => {
+        console.error("Failed to register routes:", error);
+        throw error;
+      });
+    }
+    await routesPromise;
+    routesInitialized = true;
+  }
+}
+
 // Export the Express app as a Vercel serverless function
-export default function handler(req, res) {
-  return app(req, res);
+export default async function handler(req, res) {
+  try {
+    await ensureRoutesInitialized();
+    return app(req, res);
+  } catch (error) {
+    console.error("Serverless function error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 } 
