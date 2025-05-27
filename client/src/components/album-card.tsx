@@ -2,10 +2,15 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import CountdownTimer from "./countdown-timer";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
-import { useLocation } from "wouter";
+import { useState } from "react";
+import { loadStripe } from '@stripe/stripe-js';
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { Album } from "@shared/schema";
 import ns008Image from "@assets/NS008.jpg";
 import evolutionImage from "@assets/EVOLUTION.png";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY!);
 
 interface AlbumCardProps {
   album: Album;
@@ -13,7 +18,8 @@ interface AlbumCardProps {
 
 export default function AlbumCard({ album }: AlbumCardProps) {
   const { isPlaying, currentTrack, playTrack, stopTrack } = useAudioPlayer();
-  const [, navigate] = useLocation();
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const { toast } = useToast();
 
   const handlePlayClick = () => {
     if (isPlaying && currentTrack === album.id) {
@@ -24,9 +30,52 @@ export default function AlbumCard({ album }: AlbumCardProps) {
     }
   };
 
-  const handlePurchaseClick = () => {
-    if (album.isReleased) {
-      navigate(`/checkout?album=${album.id}`);
+  const handlePurchaseClick = async () => {
+    if (!album.isReleased) return;
+    
+    setIsProcessingPayment(true);
+    
+    try {
+      // Create payment intent
+      const response = await apiRequest("POST", "/api/create-payment-intent", { 
+        albumId: album.id 
+      });
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // Initialize Stripe
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error("Stripe failed to initialize");
+      }
+      
+      // Redirect to Stripe Checkout
+      if (data.sessionId) {
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: data.sessionId,
+        });
+        
+        if (error) {
+          throw new Error(error.message || "Failed to redirect to checkout");
+        }
+      } else if (data.url) {
+        // Direct redirect to Stripe Checkout URL
+        window.location.href = data.url;
+      } else {
+        throw new Error("No valid checkout session created");
+      }
+      
+    } catch (error: any) {
+      toast({
+        title: "Payment Error",
+        description: error.message || "Failed to process payment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -93,9 +142,10 @@ export default function AlbumCard({ album }: AlbumCardProps) {
         <Button
           className="bg-cyan-400 text-black px-8 py-3 rounded-full hover:bg-white transition-all duration-300 w-full font-bold"
           onClick={handlePurchaseClick}
+          disabled={isProcessingPayment}
         >
-          <i className="fas fa-shopping-cart mr-2"></i>
-          BUY NOW
+          <i className={`fas ${isProcessingPayment ? "fa-spinner fa-spin" : "fa-shopping-cart"} mr-2`}></i>
+          {isProcessingPayment ? "PROCESSING..." : "BUY NOW"}
         </Button>
       ) : (
         <Button

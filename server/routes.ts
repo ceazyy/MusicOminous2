@@ -38,7 +38,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create payment intent for Stripe
+  // Create Stripe Checkout session
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
       const { albumId } = req.body;
@@ -56,9 +56,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const amount = Math.round(parseFloat(album.price || "0") * 100); // Convert to cents
       
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount,
-        currency: "usd",
+      // Create Stripe Checkout Session
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: album.title,
+                description: `Digital download of ${album.title} by CEAZY`,
+              },
+              unit_amount: amount,
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${req.headers.origin}/?success=true&album=${album.id}`,
+        cancel_url: `${req.headers.origin}/?canceled=true`,
         metadata: {
           albumId: album.id.toString(),
           albumTitle: album.title,
@@ -66,7 +82,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({ 
-        clientSecret: paymentIntent.client_secret,
+        sessionId: session.id,
+        url: session.url,
         album: {
           id: album.id,
           title: album.title,
@@ -75,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error: any) {
-      res.status(500).json({ error: "Error creating payment intent: " + error.message });
+      res.status(500).json({ error: "Error creating checkout session: " + error.message });
     }
   });
 
