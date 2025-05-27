@@ -50,7 +50,8 @@ app.use((err, _req, res, _next) => {
     message,
     error: err,
     stack: err.stack,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'production'
   });
   
   // In development, include more error details
@@ -74,13 +75,14 @@ async function ensureInitialized() {
     if (!routesPromise) {
       console.log("Initializing routes and storage...", {
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV
+        environment: process.env.NODE_ENV || 'production',
+        memory: process.memoryUsage()
       });
       
       try {
         // Initialize storage first
-        await storage.getAllAlbums();
-        console.log("Storage initialized successfully");
+        const albums = await storage.getAllAlbums();
+        console.log("Storage initialized successfully with albums:", albums.map(a => a.title));
         
         // Then initialize routes
         await registerRoutes(app);
@@ -91,7 +93,9 @@ async function ensureInitialized() {
         console.error("Initialization failed:", {
           error,
           stack: error.stack,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          environment: process.env.NODE_ENV || 'production',
+          memory: process.memoryUsage()
         });
         throw error;
       }
@@ -103,26 +107,31 @@ async function ensureInitialized() {
 
 // Export the Express app as a Vercel serverless function
 export default async function handler(req, res) {
+  const requestId = Math.random().toString(36).substring(7);
+  
   try {
-    console.log(`Handling ${req.method} ${req.path}`, {
+    console.log(`[${requestId}] Handling ${req.method} ${req.path}`, {
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV
+      environment: process.env.NODE_ENV || 'production',
+      memory: process.memoryUsage()
     });
     
     await ensureInitialized();
     return app(req, res);
   } catch (error) {
-    console.error("Serverless function error:", {
+    console.error(`[${requestId}] Serverless function error:`, {
       error,
       stack: error.stack,
       path: req.path,
       method: req.method,
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV
+      environment: process.env.NODE_ENV || 'production',
+      memory: process.memoryUsage()
     });
     
     res.status(500).json({ 
       error: "Internal Server Error",
+      requestId,
       ...(process.env.NODE_ENV === 'development' && {
         details: error.message,
         stack: error.stack

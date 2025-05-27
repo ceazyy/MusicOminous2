@@ -1,4 +1,5 @@
-import { users, albums, type User, type InsertUser, type Album, type InsertAlbum } from "@shared/schema";
+// Use dynamic imports for better serverless compatibility
+import type { User, InsertUser, Album, InsertAlbum } from "@shared/schema";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -9,6 +10,7 @@ export interface IStorage {
   createAlbum(album: InsertAlbum): Promise<Album>;
 }
 
+// In-memory storage implementation
 class MemStorage implements IStorage {
   private static instance: MemStorage | null = null;
   private users: Map<number, User>;
@@ -29,18 +31,17 @@ class MemStorage implements IStorage {
 
   public static getInstance(): MemStorage {
     if (!MemStorage.instance) {
+      console.log("Creating new MemStorage instance");
       MemStorage.instance = new MemStorage();
-      // Start initialization immediately
-      MemStorage.instance.initializationPromise = MemStorage.instance.initializeAlbums().catch(error => {
-        console.error("Failed to initialize albums:", error);
-        throw error;
-      });
     }
     return MemStorage.instance;
   }
 
   private async initializeAlbums() {
-    if (this.initialized) return;
+    if (this.initialized) {
+      console.log("Storage already initialized");
+      return;
+    }
 
     try {
       console.log("Starting album initialization...");
@@ -50,7 +51,7 @@ class MemStorage implements IStorage {
       this.currentAlbumId = 1;
       
       // Wicked Generation - Coming June 26, 2025
-      await this.createAlbum({
+      const wickedGen = await this.createAlbum({
         title: "WICKED GENERATION",
         catalog: "CEAZY",
         coverImage: "/src/assets/NS008.jpg",
@@ -60,9 +61,10 @@ class MemStorage implements IStorage {
         previewUrl: null,
         purchaseUrl: null,
       });
+      console.log("Created album:", wickedGen.title);
 
       // Evolution - Already released
-      await this.createAlbum({
+      const evolution = await this.createAlbum({
         title: "EVOLUTION",
         catalog: "CEAZY",
         coverImage: "/src/assets/EVOLUTION.png",
@@ -72,6 +74,7 @@ class MemStorage implements IStorage {
         previewUrl: "/preview/evolution.mp3",
         purchaseUrl: "/purchase/evolution",
       });
+      console.log("Created album:", evolution.title);
 
       this.initialized = true;
       console.log("Albums initialized successfully");
@@ -85,15 +88,29 @@ class MemStorage implements IStorage {
   private async ensureInitialized() {
     if (!this.initialized) {
       if (!this.initializationPromise) {
+        console.log("Starting initialization promise");
         this.initializationPromise = this.initializeAlbums();
       }
       try {
         await this.initializationPromise;
       } catch (error) {
-        // If initialization failed, clear the promise so we can retry
+        console.error("Initialization failed:", error);
         this.initializationPromise = null;
         throw error;
       }
+    }
+  }
+
+  async getAllAlbums(): Promise<Album[]> {
+    try {
+      console.log("Getting all albums...");
+      await this.ensureInitialized();
+      const albums = Array.from(this.albums.values());
+      console.log(`Retrieved ${albums.length} albums:`, albums.map(a => a.title));
+      return albums;
+    } catch (error) {
+      console.error("Error in getAllAlbums:", error);
+      throw error;
     }
   }
 
@@ -112,18 +129,6 @@ class MemStorage implements IStorage {
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
-  }
-
-  async getAllAlbums(): Promise<Album[]> {
-    try {
-      await this.ensureInitialized();
-      const albums = Array.from(this.albums.values());
-      console.log(`Retrieved ${albums.length} albums`);
-      return albums;
-    } catch (error) {
-      console.error("Error in getAllAlbums:", error);
-      throw error;
-    }
   }
 
   async getAlbum(id: number): Promise<Album | undefined> {
@@ -157,4 +162,11 @@ class MemStorage implements IStorage {
 }
 
 // Export a singleton instance
-export const storage = MemStorage.getInstance();
+const storage = MemStorage.getInstance();
+
+// Start initialization immediately
+storage.getAllAlbums().catch(error => {
+  console.error("Initial storage initialization failed:", error);
+});
+
+export { storage };
