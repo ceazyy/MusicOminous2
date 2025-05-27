@@ -14,41 +14,61 @@ export class MemStorage implements IStorage {
   private albums: Map<number, Album>;
   private currentUserId: number;
   private currentAlbumId: number;
+  private initialized: boolean;
 
   constructor() {
     this.users = new Map();
     this.albums = new Map();
     this.currentUserId = 1;
     this.currentAlbumId = 1;
+    this.initialized = false;
     
     // Initialize with CEAZY albums
-    this.initializeAlbums();
+    this.initializeAlbums().catch(error => {
+      console.error("Failed to initialize albums:", error);
+    });
   }
 
   private async initializeAlbums() {
-    // Wicked Generation - Coming June 26, 2025
-    await this.createAlbum({
-      title: "WICKED GENERATION",
-      catalog: "CEAZY",
-      coverImage: "/src/assets/NS008.jpg",
-      releaseDate: "2025-06-26",
-      price: null,
-      isReleased: false,
-      previewUrl: null,
-      purchaseUrl: null,
-    });
+    if (this.initialized) return;
 
-    // Evolution - Already released
-    await this.createAlbum({
-      title: "EVOLUTION",
-      catalog: "CEAZY",
-      coverImage: "/src/assets/EVOLUTION.png",
-      releaseDate: "2024-12-01",
-      price: "5.00",
-      isReleased: true,
-      previewUrl: "/preview/evolution.mp3",
-      purchaseUrl: "/purchase/evolution",
-    });
+    try {
+      // Wicked Generation - Coming June 26, 2025
+      await this.createAlbum({
+        title: "WICKED GENERATION",
+        catalog: "CEAZY",
+        coverImage: "/src/assets/NS008.jpg",
+        releaseDate: "2025-06-26",
+        price: null,
+        isReleased: false,
+        previewUrl: null,
+        purchaseUrl: null,
+      });
+
+      // Evolution - Already released
+      await this.createAlbum({
+        title: "EVOLUTION",
+        catalog: "CEAZY",
+        coverImage: "/src/assets/EVOLUTION.png",
+        releaseDate: "2024-12-01",
+        price: "5.00",
+        isReleased: true,
+        previewUrl: "/preview/evolution.mp3",
+        purchaseUrl: "/purchase/evolution",
+      });
+
+      this.initialized = true;
+      console.log("Albums initialized successfully");
+    } catch (error) {
+      console.error("Error initializing albums:", error);
+      throw error;
+    }
+  }
+
+  private async ensureInitialized() {
+    if (!this.initialized) {
+      await this.initializeAlbums();
+    }
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -69,16 +89,28 @@ export class MemStorage implements IStorage {
   }
 
   async getAllAlbums(): Promise<Album[]> {
+    await this.ensureInitialized();
     return Array.from(this.albums.values());
   }
 
   async getAlbum(id: number): Promise<Album | undefined> {
+    await this.ensureInitialized();
     return this.albums.get(id);
   }
 
   async createAlbum(insertAlbum: InsertAlbum): Promise<Album> {
     const id = this.currentAlbumId++;
-    const album: Album = { ...insertAlbum, id };
+    const album: Album = {
+      id,
+      title: insertAlbum.title,
+      catalog: insertAlbum.catalog,
+      coverImage: insertAlbum.coverImage,
+      releaseDate: insertAlbum.releaseDate ?? null,
+      price: insertAlbum.price ?? null,
+      isReleased: insertAlbum.isReleased ?? null,
+      previewUrl: insertAlbum.previewUrl ?? null,
+      purchaseUrl: insertAlbum.purchaseUrl ?? null
+    };
     this.albums.set(id, album);
     return album;
   }
