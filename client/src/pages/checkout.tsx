@@ -1,5 +1,3 @@
-import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { apiRequest } from "@/lib/queryClient";
@@ -8,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from 'wouter';
 import backgroundImage from "@assets/pic.jpg";
 
-// Make sure to call `loadStripe` outside of a component's render to avoid
-// recreating the `Stripe` object on every render.
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-}
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-
 interface CheckoutData {
-  clientSecret: string;
   album: {
     id: number;
     title: string;
@@ -26,42 +16,30 @@ interface CheckoutData {
 }
 
 const CheckoutForm = ({ album }: { album: CheckoutData['album'] }) => {
-  const stripe = useStripe();
-  const elements = useElements();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
-
     setIsProcessing(true);
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: window.location.origin + "/",
-      },
-    });
-
-    setIsProcessing(false);
-
-    if (error) {
+    try {
+      // TODO: Implement CashFree payment flow here
       toast({
-        title: "Payment Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Payment Successful",
-        description: "Your music download is ready!",
+        title: "Payment System Coming Soon",
+        description: "We're currently upgrading our payment system. Please check back later.",
+        variant: "default",
       });
       navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Payment Failed",
+        description: error.message || "An error occurred during payment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -93,20 +71,14 @@ const CheckoutForm = ({ album }: { album: CheckoutData['album'] }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="payment-element-container">
-              <PaymentElement 
-                options={{
-                  layout: "tabs",
-                  fields: {
-                    billingDetails: "auto"
-                  }
-                }}
-              />
+            <div className="text-center text-gray-400 mb-6">
+              <p>Payment system upgrade in progress</p>
+              <p className="text-sm mt-2">We're currently upgrading our payment system to provide you with a better experience.</p>
             </div>
             
             <Button
               type="submit"
-              disabled={!stripe || isProcessing}
+              disabled={isProcessing}
               className="w-full bg-cyan-400 text-black font-bold py-3 hover:bg-white transition-all duration-300"
             >
               {isProcessing ? (
@@ -133,7 +105,7 @@ const CheckoutForm = ({ album }: { album: CheckoutData['album'] }) => {
 
           <div className="text-center mt-6 text-gray-400 text-sm">
             <i className="fas fa-lock mr-2"></i>
-            Secured by Stripe
+            Secure Payment Coming Soon
           </div>
         </motion.div>
       </div>
@@ -156,23 +128,23 @@ export default function Checkout() {
       return;
     }
 
-    // Create PaymentIntent
-    apiRequest("POST", "/api/create-payment-intent", { albumId: parseInt(albumId) })
+    // Get album details
+    apiRequest("GET", `/api/albums/${albumId}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
         return res.json();
       })
-      .then((data) => {
-        if (data.error) {
-          throw new Error(data.error);
+      .then((album) => {
+        if (!album) {
+          throw new Error("Album not found");
         }
-        setCheckoutData(data);
+        setCheckoutData({ album });
         setLoading(false);
       })
       .catch((error) => {
-        console.error("Error creating payment intent:", error);
+        console.error("Error fetching album:", error);
         navigate("/");
       });
   }, [navigate]);
@@ -182,7 +154,7 @@ export default function Checkout() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-white font-metal">LOADING PAYMENT...</p>
+          <p className="text-white font-metal">LOADING...</p>
         </div>
       </div>
     );
@@ -192,15 +164,11 @@ export default function Checkout() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center text-red-400">
-          <p className="font-metal text-xl">PAYMENT INITIALIZATION FAILED</p>
+          <p className="font-metal text-xl">ALBUM NOT FOUND</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <Elements stripe={stripePromise} options={{ clientSecret: checkoutData.clientSecret }}>
-      <CheckoutForm album={checkoutData.album} />
-    </Elements>
-  );
+  return <CheckoutForm album={checkoutData.album} />;
 }

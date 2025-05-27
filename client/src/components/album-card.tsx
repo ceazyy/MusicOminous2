@@ -3,14 +3,11 @@ import { Button } from "@/components/ui/button";
 import CountdownTimer from "./countdown-timer";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
 import { useState } from "react";
-import { loadStripe } from '@stripe/stripe-js';
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from 'wouter';
 import type { Album } from "@shared/schema";
 import ns008Image from "@assets/NS008.jpg";
 import evolutionImage from "@assets/EVOLUTION.png";
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY!);
 
 interface AlbumCardProps {
   album: Album;
@@ -20,6 +17,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
   const { isPlaying, currentTrack, playTrack, stopTrack } = useAudioPlayer();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const handlePlayClick = () => {
     if (isPlaying && currentTrack === album.id) {
@@ -36,48 +34,12 @@ export default function AlbumCard({ album }: AlbumCardProps) {
     setIsProcessingPayment(true);
     
     try {
-      // Create payment intent
-      const response = await apiRequest("POST", "/api/create-payment-intent", { 
-        albumId: album.id 
+      // TODO: Implement CashFree payment flow here
+      toast({
+        title: "Payment System Coming Soon",
+        description: "We're currently upgrading our payment system. Please check back later.",
+        variant: "default",
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server returned non-JSON response');
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      // Initialize Stripe
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error("Stripe failed to initialize");
-      }
-      
-      // Redirect to Stripe Checkout
-      if (data.sessionId) {
-        const { error } = await stripe.redirectToCheckout({
-          sessionId: data.sessionId,
-        });
-        
-        if (error) {
-          throw new Error(error.message || "Failed to redirect to checkout");
-        }
-      } else if (data.url) {
-        // Direct redirect to Stripe Checkout URL
-        window.location.href = data.url;
-      } else {
-        throw new Error("No valid checkout session created");
-      }
-      
     } catch (error: any) {
       toast({
         title: "Payment Error",
