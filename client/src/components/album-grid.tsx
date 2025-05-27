@@ -2,10 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import AlbumCard from "./album-card";
 import type { Album } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AlbumGrid() {
   const { data: albums, isLoading, error } = useQuery<Album[]>({
-    queryKey: ["/api/albums"],
+    queryKey: ["albums"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/albums");
+      return response.json();
+    }
   });
 
   if (isLoading) {
@@ -24,9 +29,10 @@ export default function AlbumGrid() {
   }
 
   if (error) {
+    console.error("Error loading albums:", error);
     return (
       <div className="text-center text-red-400 text-xl">
-        Failed to load albums. The darkness consumes all...
+        Failed to load albums. Please try again later.
       </div>
     );
   }
