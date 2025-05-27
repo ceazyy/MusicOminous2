@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Creepster&family=Nosifer&family=Metal+Mania&display=swap');
+
+:root {
+  --background: 0 0% 0%; /* Pure black */
+  --foreground: 0 0% 100%; /* Pure white */
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 65%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 98%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 98%;
+  --border: 0 0% 20%;
+  --input: 0 0% 15%;
+  --primary: 180 100% 50%; /* Cyan glow */
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 180 100% 50%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 340 75% 55%; /* Pink glow */
+  --destructive-foreground: 0 0% 98%;
+  --ring: 180 100% 50%;
+  --radius: 0.5rem;
+  
+  /* Custom gothic colors */
+  --glow-cyan: 180 100% 50%;
+  --glow-pink: 340 75% 55%;
+  --glow-white: 0 0% 100%;
+}
+
+.dark {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 65%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 98%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 98%;
+  --border: 0 0% 20%;
+  --input: 0 0% 15%;
+  --primary: 180 100% 50%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 180 100% 50%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 340 75% 55%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 180 100% 50%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-gothic antialiased bg-background text-foreground overflow-x-hidden;
+    font-family: 'Metal Mania', 'Creepster', 'Nosifer', serif;
+  }
+}
+
+@layer components {
+  .font-gothic {
+    font-family: 'Metal Mania', 'Creepster', serif;
+  }
+  
+  .font-metal {
+    font-family: 'Nosifer', 'Metal Mania', serif;
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.6);
+  }
+  
+  .text-glow-cyan {
+    text-shadow: 0 0 10px hsl(var(--glow-cyan)), 0 0 20px hsl(var(--glow-cyan) / 0.6);
+  }
+  
+  .text-glow-pink {
+    text-shadow: 0 0 10px hsl(var(--glow-pink)), 0 0 20px hsl(var(--glow-pink) / 0.6);
+  }
+  
+  .hover-glow {
+    transition: all 0.3s ease;
+  }
+  
+  .hover-glow:hover {
+    box-shadow: 0 0 30px hsl(var(--glow-cyan) / 0.8), 0 0 60px hsl(var(--glow-cyan) / 0.5);
+    text-shadow: 0 0 15px hsl(var(--glow-white));
+  }
+  
+  .album-card {
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+  
+  .album-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px hsl(var(--glow-cyan) / 0.3);
+  }
+  
+  .social-icon {
+    transition: all 0.3s ease;
+  }
+  
+  .social-icon:hover {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 20px hsl(var(--glow-cyan)));
+  }
+  
+  .play-btn {
+    transition: all 0.2s ease;
+  }
+  
+  .play-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px hsl(var(--glow-cyan) / 0.6);
+  }
+  
+  .bg-blur {
+    backdrop-filter: blur(8px);
+  }
+  
+  .background-static {
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.3) blur(5px);
+  }
+  
+  .countdown-pulse {
+    animation: countdown-pulse 1s infinite;
+  }
+  
+  @keyframes countdown-pulse {
+    0%, 100% {
+      text-shadow: 0 0 10px hsl(var(--glow-pink) / 0.8);
+    }
+    50% {
+      text-shadow: 0 0 20px hsl(var(--glow-pink)), 0 0 30px hsl(var(--glow-pink) / 0.8);
+    }
+  }
+  
+  .glow-pulse {
+    animation: glow-pulse 2s infinite;
+  }
+  
+  @keyframes glow-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--glow-cyan) / 0.5), 0 0 40px hsl(var(--glow-cyan) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 30px hsl(var(--glow-cyan) / 0.8), 0 0 60px hsl(var(--glow-cyan) / 0.5);
+    }
+  }
+}
