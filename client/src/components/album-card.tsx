@@ -55,7 +55,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
 
   // Get the correct image source
   const getImageSrc = () => {
-    if (album.catalog === "NS008") return ns008Image;
+    if (album.title === "WICKED GENERATION") return ns008Image;
     if (album.title === "EVOLUTION") return evolutionImage;
     return album.coverImage;
   };
@@ -73,8 +73,9 @@ export default function AlbumCard({ album }: AlbumCardProps) {
       <motion.img
         src={getImageSrc()}
         alt={`${album.title} Album Cover`}
-        className="w-full h-80 object-cover rounded-lg mb-6 transition-transform duration-300"
-        whileHover={{ scale: 1.05 }}
+        className="w-full h-80 object-contain rounded-lg mb-6 transition-transform duration-300 bg-black bg-opacity-30"
+        whileHover={{ scale: 1.02 }}
+        loading="lazy"
       />
       
       {/* Album Info */}

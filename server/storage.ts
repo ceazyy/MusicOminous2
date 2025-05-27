@@ -29,7 +29,7 @@ export class MemStorage implements IStorage {
     // Wicked Generation - Coming June 26, 2025
     await this.createAlbum({
       title: "WICKED GENERATION",
-      catalog: "NS008",
+      catalog: "CEAZY",
       coverImage: "/src/assets/NS008.jpg",
       releaseDate: "2025-06-26",
       price: null,
@@ -41,7 +41,7 @@ export class MemStorage implements IStorage {
     // Evolution - Already released
     await this.createAlbum({
       title: "EVOLUTION",
-      catalog: "CEAZY001",
+      catalog: "CEAZY",
       coverImage: "/src/assets/EVOLUTION.png",
       releaseDate: "2024-12-01",
       price: "5.00",
