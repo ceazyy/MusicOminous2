@@ -15,6 +15,7 @@ export class MemStorage implements IStorage {
   private currentUserId: number;
   private currentAlbumId: number;
   private initialized: boolean;
+  private initializationPromise: Promise<void> | null;
 
   constructor() {
     this.users = new Map();
@@ -22,10 +23,12 @@ export class MemStorage implements IStorage {
     this.currentUserId = 1;
     this.currentAlbumId = 1;
     this.initialized = false;
+    this.initializationPromise = null;
     
-    // Initialize with CEAZY albums
-    this.initializeAlbums().catch(error => {
+    // Start initialization immediately
+    this.initializationPromise = this.initializeAlbums().catch(error => {
       console.error("Failed to initialize albums:", error);
+      throw error; // Re-throw to ensure initialization failure is propagated
     });
   }
 
@@ -33,6 +36,8 @@ export class MemStorage implements IStorage {
     if (this.initialized) return;
 
     try {
+      console.log("Starting album initialization...");
+      
       // Wicked Generation - Coming June 26, 2025
       await this.createAlbum({
         title: "WICKED GENERATION",
@@ -61,13 +66,17 @@ export class MemStorage implements IStorage {
       console.log("Albums initialized successfully");
     } catch (error) {
       console.error("Error initializing albums:", error);
+      this.initialized = false; // Reset initialization flag on error
       throw error;
     }
   }
 
   private async ensureInitialized() {
     if (!this.initialized) {
-      await this.initializeAlbums();
+      if (!this.initializationPromise) {
+        this.initializationPromise = this.initializeAlbums();
+      }
+      await this.initializationPromise;
     }
   }
 
@@ -89,13 +98,27 @@ export class MemStorage implements IStorage {
   }
 
   async getAllAlbums(): Promise<Album[]> {
-    await this.ensureInitialized();
-    return Array.from(this.albums.values());
+    try {
+      await this.ensureInitialized();
+      const albums = Array.from(this.albums.values());
+      console.log(`Retrieved ${albums.length} albums`);
+      return albums;
+    } catch (error) {
+      console.error("Error in getAllAlbums:", error);
+      throw error;
+    }
   }
 
   async getAlbum(id: number): Promise<Album | undefined> {
-    await this.ensureInitialized();
-    return this.albums.get(id);
+    try {
+      await this.ensureInitialized();
+      const album = this.albums.get(id);
+      console.log(`Retrieved album ${id}:`, album ? "found" : "not found");
+      return album;
+    } catch (error) {
+      console.error(`Error in getAlbum(${id}):`, error);
+      throw error;
+    }
   }
 
   async createAlbum(insertAlbum: InsertAlbum): Promise<Album> {
