@@ -40,6 +40,16 @@ export default function AlbumCard({ album }: AlbumCardProps) {
       const response = await apiRequest("POST", "/api/create-payment-intent", { 
         albumId: album.id 
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response');
+      }
+      
       const data = await response.json();
       
       if (data.error) {

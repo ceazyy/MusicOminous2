@@ -73,8 +73,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         ],
         mode: 'payment',
-        success_url: `${req.headers.origin}/?success=true&album=${album.id}`,
-        cancel_url: `${req.headers.origin}/?canceled=true`,
+        success_url: `${req.headers.origin || 'http://localhost:5000'}/?success=true&album=${album.id}`,
+        cancel_url: `${req.headers.origin || 'http://localhost:5000'}/?canceled=true`,
         metadata: {
           albumId: album.id.toString(),
           albumTitle: album.title,
