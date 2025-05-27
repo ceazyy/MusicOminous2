@@ -158,8 +158,16 @@ export default function Checkout() {
 
     // Create PaymentIntent
     apiRequest("POST", "/api/create-payment-intent", { albumId: parseInt(albumId) })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
+        if (data.error) {
+          throw new Error(data.error);
+        }
         setCheckoutData(data);
         setLoading(false);
       })
