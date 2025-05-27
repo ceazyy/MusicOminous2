@@ -40,7 +40,12 @@ app.use((req, res, next) => {
 
 // Register API routes
 (async () => {
-  await registerRoutes(app);
+  try {
+    await registerRoutes(app);
+  } catch (error) {
+    console.error("Failed to register routes:", error);
+    process.exit(1);
+  }
 })();
 
 // Error handling middleware
@@ -48,8 +53,8 @@ app.use((err, _req, res, _next) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   
-  res.status(status).json({ message });
-  console.error(err);
+  console.error("API Error:", err);
+  res.status(status).json({ error: message });
 });
 
 // Export the Express app as a Vercel serverless function
