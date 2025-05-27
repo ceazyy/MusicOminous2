@@ -2,9 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import CountdownTimer from "./countdown-timer";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import type { Album } from "@shared/schema";
 import ns008Image from "@assets/NS008.jpg";
 import evolutionImage from "@assets/EVOLUTION.png";
@@ -15,28 +13,7 @@ interface AlbumCardProps {
 
 export default function AlbumCard({ album }: AlbumCardProps) {
   const { isPlaying, currentTrack, playTrack, stopTrack } = useAudioPlayer();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  const purchaseMutation = useMutation({
-    mutationFn: async (albumId: number) => {
-      const response = await apiRequest("POST", `/api/purchase/${albumId}`);
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Purchase Successful!",
-        description: "Your download will begin shortly.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Purchase Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const [, navigate] = useLocation();
 
   const handlePlayClick = () => {
     if (isPlaying && currentTrack === album.id) {
@@ -49,7 +26,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
 
   const handlePurchaseClick = () => {
     if (album.isReleased) {
-      purchaseMutation.mutate(album.id);
+      navigate(`/checkout?album=${album.id}`);
     }
   };
 
@@ -61,13 +38,12 @@ export default function AlbumCard({ album }: AlbumCardProps) {
   };
 
   const isCurrentlyPlaying = isPlaying && currentTrack === album.id;
-  const isPurchasing = purchaseMutation.isPending;
 
   return (
     <motion.div 
       className="album-card bg-black bg-opacity-50 border border-gray-600 rounded-lg p-8 text-center"
-      whileHover={{ y: -10 }}
-      transition={{ duration: 0.3 }}
+      whileHover={{ y: -5 }}
+      transition={{ duration: 0.2 }}
     >
       {/* Album Cover */}
       <motion.img
@@ -117,10 +93,9 @@ export default function AlbumCard({ album }: AlbumCardProps) {
         <Button
           className="bg-cyan-400 text-black px-8 py-3 rounded-full hover:bg-white transition-all duration-300 w-full font-bold"
           onClick={handlePurchaseClick}
-          disabled={isPurchasing}
         >
-          <i className={`fas ${isPurchasing ? "fa-spinner fa-spin" : "fa-shopping-cart"} mr-2`}></i>
-          {isPurchasing ? "PROCESSING..." : "BUY NOW"}
+          <i className="fas fa-shopping-cart mr-2"></i>
+          BUY NOW
         </Button>
       ) : (
         <Button
