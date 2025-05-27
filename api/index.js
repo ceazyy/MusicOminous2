@@ -39,9 +39,8 @@ app.use((req, res, next) => {
 });
 
 // Register API routes
-let server;
 (async () => {
-  server = await registerRoutes(app);
+  await registerRoutes(app);
 })();
 
 // Error handling middleware
@@ -54,4 +53,6 @@ app.use((err, _req, res, _next) => {
 });
 
 // Export the Express app as a Vercel serverless function
-export default app; 
+export default function handler(req, res) {
+  return app(req, res);
+} 
