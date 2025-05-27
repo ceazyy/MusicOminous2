@@ -9,7 +9,8 @@ export interface IStorage {
   createAlbum(album: InsertAlbum): Promise<Album>;
 }
 
-export class MemStorage implements IStorage {
+class MemStorage implements IStorage {
+  private static instance: MemStorage | null = null;
   private users: Map<number, User>;
   private albums: Map<number, Album>;
   private currentUserId: number;
@@ -17,19 +18,25 @@ export class MemStorage implements IStorage {
   private initialized: boolean;
   private initializationPromise: Promise<void> | null;
 
-  constructor() {
+  private constructor() {
     this.users = new Map();
     this.albums = new Map();
     this.currentUserId = 1;
     this.currentAlbumId = 1;
     this.initialized = false;
     this.initializationPromise = null;
-    
-    // Start initialization immediately
-    this.initializationPromise = this.initializeAlbums().catch(error => {
-      console.error("Failed to initialize albums:", error);
-      throw error; // Re-throw to ensure initialization failure is propagated
-    });
+  }
+
+  public static getInstance(): MemStorage {
+    if (!MemStorage.instance) {
+      MemStorage.instance = new MemStorage();
+      // Start initialization immediately
+      MemStorage.instance.initializationPromise = MemStorage.instance.initializeAlbums().catch(error => {
+        console.error("Failed to initialize albums:", error);
+        throw error;
+      });
+    }
+    return MemStorage.instance;
   }
 
   private async initializeAlbums() {
@@ -37,6 +44,10 @@ export class MemStorage implements IStorage {
 
     try {
       console.log("Starting album initialization...");
+      
+      // Clear any existing albums to prevent duplicates
+      this.albums.clear();
+      this.currentAlbumId = 1;
       
       // Wicked Generation - Coming June 26, 2025
       await this.createAlbum({
@@ -66,7 +77,7 @@ export class MemStorage implements IStorage {
       console.log("Albums initialized successfully");
     } catch (error) {
       console.error("Error initializing albums:", error);
-      this.initialized = false; // Reset initialization flag on error
+      this.initialized = false;
       throw error;
     }
   }
@@ -76,7 +87,13 @@ export class MemStorage implements IStorage {
       if (!this.initializationPromise) {
         this.initializationPromise = this.initializeAlbums();
       }
-      await this.initializationPromise;
+      try {
+        await this.initializationPromise;
+      } catch (error) {
+        // If initialization failed, clear the promise so we can retry
+        this.initializationPromise = null;
+        throw error;
+      }
     }
   }
 
@@ -139,5 +156,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use memory storage for now - can be switched to database storage in production
-export const storage = new MemStorage();
+// Export a singleton instance
+export const storage = MemStorage.getInstance();

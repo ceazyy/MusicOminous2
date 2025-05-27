@@ -2,6 +2,7 @@ import express from "express";
 import { registerRoutes } from "../server/routes.js";
 import { storage } from "../server/storage.js";
 
+// Create a single Express app instance that will be reused
 const app = express();
 
 // Configure Express middleware
@@ -48,13 +49,20 @@ app.use((err, _req, res, _next) => {
     status,
     message,
     error: err,
-    stack: err.stack
+    stack: err.stack,
+    timestamp: new Date().toISOString()
   });
   
-  res.status(status).json({ 
+  // In development, include more error details
+  const errorResponse = {
     error: message,
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+    ...(process.env.NODE_ENV === 'development' && {
+      details: err.message,
+      stack: err.stack
+    })
+  };
+  
+  res.status(status).json(errorResponse);
 });
 
 // Initialize routes and storage
@@ -64,28 +72,43 @@ let routesPromise = null;
 async function ensureInitialized() {
   if (!routesInitialized) {
     if (!routesPromise) {
-      console.log("Initializing routes and storage...");
-      routesPromise = Promise.all([
-        registerRoutes(app),
-        storage.getAllAlbums().catch(error => {
-          console.error("Storage initialization error:", error);
-          throw error;
-        })
-      ]).catch(error => {
-        console.error("Failed to initialize:", error);
-        throw error;
+      console.log("Initializing routes and storage...", {
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV
       });
+      
+      try {
+        // Initialize storage first
+        await storage.getAllAlbums();
+        console.log("Storage initialized successfully");
+        
+        // Then initialize routes
+        await registerRoutes(app);
+        console.log("Routes initialized successfully");
+        
+        routesInitialized = true;
+      } catch (error) {
+        console.error("Initialization failed:", {
+          error,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
+        throw error;
+      }
+    } else {
+      await routesPromise;
     }
-    await routesPromise;
-    routesInitialized = true;
-    console.log("Routes and storage initialized successfully");
   }
 }
 
 // Export the Express app as a Vercel serverless function
 export default async function handler(req, res) {
   try {
-    console.log(`Handling ${req.method} ${req.path}`);
+    console.log(`Handling ${req.method} ${req.path}`, {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV
+    });
+    
     await ensureInitialized();
     return app(req, res);
   } catch (error) {
@@ -93,11 +116,17 @@ export default async function handler(req, res) {
       error,
       stack: error.stack,
       path: req.path,
-      method: req.method
+      method: req.method,
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV
     });
+    
     res.status(500).json({ 
       error: "Internal Server Error",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      ...(process.env.NODE_ENV === 'development' && {
+        details: error.message,
+        stack: error.stack
+      })
     });
   }
 } 
